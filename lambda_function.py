@@ -1,10 +1,30 @@
 import json
 import boto3
 import base64
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 
 s3 = boto3.client('s3')
 bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 BUCKET_NAME = 'smechatbots3'
+region = 'us-east-2'
+host = "623iw9z3sa284c5jopad.us-east-2.aoss.amazonaws.com"  # no https://
+region = "us-east-2"
+
+    # Use Lambda IAM role for auth (no keys required)
+auth = BotoAWSRequestsAuth(
+    aws_host=host,
+    aws_region=region,
+    aws_service="aoss"   # important for Serverless
+)
+
+client = OpenSearch(
+    hosts=[{"host": host, "port": 443}],
+    http_auth=auth,
+    use_ssl=True,
+    verify_certs=True,
+    connection_class=RequestsHttpConnection
+)
 
 # --- Helpers ---
 def extract_text(file_content, file_name):
@@ -28,6 +48,15 @@ def embed_text(chunk):
     return json.loads(response["body"].read())["embedding"]
 
 def store_vector(doc_id, chunks, embeddings):
+    for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+        doc = {
+            "doc_id": doc_id,
+            "chunk": chunk,
+            "embedding": emb
+        }
+        client.index(index="documents", body=doc)
+
+
     """Store vectors (pseudo-code). Replace with OpenSearch/DB insert."""
     print(f"Storing {len(embeddings)} embeddings for {doc_id}")
     # Example: put into DynamoDB / OpenSearch
