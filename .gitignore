@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+
+# AWS Lambda / Toolkit temp files
+.aws-sam/
+.vscode/
+*.zip
